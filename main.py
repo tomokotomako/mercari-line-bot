@@ -62,3 +62,6 @@ def handle_image(event):
 
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingAp
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
