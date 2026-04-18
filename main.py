@@ -37,7 +37,7 @@ def handle_image(event):
         with urllib.request.urlopen(req) as response:
             image_data = response.read()
 
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.0-flash')
     import PIL.Image
     import io
     image = PIL.Image.open(io.BytesIO(image_data))
