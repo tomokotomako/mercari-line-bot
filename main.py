@@ -53,7 +53,7 @@ def handle_image(event):
 """
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model=gemini-1.5-flash-latest
         contents=[
             types.Part.from_bytes(data=image_data, mime_type="image/jpeg"),
             prompt
