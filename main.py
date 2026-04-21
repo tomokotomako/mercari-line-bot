@@ -1,5 +1,6 @@
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
@@ -8,15 +9,13 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.webhooks import MessageEvent, ImageMessageContent
 import urllib.request
-import PIL.Image
-import io
 
 app = Flask(__name__)
 
 configuration = Configuration(access_token=os.environ.get('LINE_CHANNEL_ACCESS_TOKEN'))
 handler = WebhookHandler(os.environ.get('LINE_CHANNEL_SECRET'))
 
-genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
+client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -37,8 +36,6 @@ def handle_image(event):
     with urllib.request.urlopen(req) as response:
         image_data = response.read()
 
-    image = PIL.Image.open(io.BytesIO(image_data))
-
     prompt = """
 この商品のメルカリ出品情報を日本語で作成してください。
 
@@ -55,8 +52,18 @@ def handle_image(event):
 【価格】（相場を考えた適正価格）
 """
 
-    model = genai.GenerativeModel('gemini-2.0-flash')
-    response = model.generate_content([prompt, image])
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=[
+            types.Content(
+                role='user',
+                parts=[
+                    types.Part.from_bytes(data=image_data, mime_type='image/jpeg'),
+                    types.Part.from_text(text=prompt),
+                ]
+            )
+        ]
+    )
     reply_text = response.text
 
     with ApiClient(configuration) as api_client:
