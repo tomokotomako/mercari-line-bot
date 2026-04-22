@@ -53,7 +53,7 @@ def handle_image(event):
 """
 
     response = client.models.generate_content(
-        model='gemini-2.0-flash-lite',
+        model='gemini-1.5-flash-latest',
         contents=[
             types.Content(
                 role='user',
