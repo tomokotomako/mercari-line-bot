@@ -1,6 +1,7 @@
 import os
 import base64
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
@@ -13,7 +14,7 @@ import urllib.request
 app = Flask(__name__)
 configuration = Configuration(access_token=os.environ.get('LINE_CHANNEL_ACCESS_TOKEN'))
 handler = WebhookHandler(os.environ.get('LINE_CHANNEL_SECRET'))
-genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
+client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -34,10 +35,15 @@ def handle_image(event):
     with urllib.request.urlopen(req) as resp:
         image_data = resp.read()
     image_base64 = base64.b64encode(image_data).decode('utf-8')
-    prompt = "この商品のメルカリ出品情報を日本語で作成してください。"
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    result = model.generate_content([{'mime_type': 'image/jpeg', 'data': image_base64}, prompt])
-    reply_text = result.text
+    prompt = "この商品のメルカリ出品情報を日本語で作成してください。\n\n【タイトル】（40文字以内）\n\n【商品説明】\n・ブランド・商品名\n・素材・色・サイズ\n・状態\n・付属品\n\n【検索ワード】（スペース区切りで10個）\n\n【価格】（相場を考えた適正価格）"
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=[
+            types.Part.from_bytes(data=image_data, mime_type='image/jpeg'),
+            prompt
+        ]
+    )
+    reply_text = response.text
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message(
