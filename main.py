@@ -29,30 +29,23 @@ def callback():
 @handler.add(MessageEvent, message=ImageMessageContent)
 def handle_image(event):
     message_id = event.message.id
-    headers = {'Authorization': f'Bearer {os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")}'}
     url = f'https://api-data.line.me/v2/bot/message/{message_id}/content'
-    req = urllib.request.Request(url, headers=headers)
+    token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+    req = urllib.request.Request(url, headers={'Authorization': f'Bearer {token}'})
     with urllib.request.urlopen(req) as resp:
         image_data = resp.read()
-    image_base64 = base64.b64encode(image_data).decode('utf-8')
-    prompt = "この商品のメルカリ出品情報を日本語で作成してください。\n\n【タイトル】（40文字以内）\n\n【商品説明】\n・ブランド・商品名\n・素材・色・サイズ\n・状態\n・付属品\n\n【検索ワード】（スペース区切りで10個）\n\n【価格】（相場を考えた適正価格）"
+    prompt = "この商品のメルカリ出品情報を日本語で作成してください。\n\n【タイトル】（40文字以内）\n\n【商品説明】\n\n【検索ワード】\n\n【価格】（適正価格）"
     response = client.models.generate_content(
         model='gemini-2.0-flash',
-        contents=[
-            types.Part.from_bytes(data=image_data, mime_type='image/jpeg'),
-            prompt
-        ]
+        contents=[types.Part.from_bytes(data=image_data, mime_type='image/jpeg'), prompt]
     )
-    reply_text = response.text
     with ApiClient(configuration) as api_client:
-        line_bot_api = MessagingApi(api_client)
-        line_bot_api.reply_message(
+        MessagingApi(api_client).reply_message(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
-                messages=[TextMessage(text=reply_text)]
+                messages=[TextMessage(text=response.text)]
             )
         )
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
